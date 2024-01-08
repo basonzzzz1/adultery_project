@@ -52,8 +52,11 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth ->
                         auth
                                 .requestMatchers("/User/**").permitAll()
+                                .requestMatchers("ws://localhost:8080/ws/websocket").permitAll()
+                                .requestMatchers("/ws/websocket").permitAll()
+                                .requestMatchers("/ws/**").permitAll()
                                 .requestMatchers("/User/register").permitAll()
-                                .requestMatchers("/Management/**").permitAll()
+                                .requestMatchers("/Chat/**").permitAll()
                                 .anyRequest().authenticated()
                 );
         http.authenticationProvider(authenticationProvider());

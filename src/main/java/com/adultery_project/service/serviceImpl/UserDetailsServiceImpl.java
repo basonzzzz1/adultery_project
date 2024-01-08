@@ -17,7 +17,9 @@ import java.util.Optional;
 public class UserDetailsServiceImpl implements UserDetailsService {
     @Autowired
     UserRepository userRepository;
-
+    public boolean existsByUsername(String username){
+        return userRepository.existsByUsername(username);
+    }
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -25,6 +27,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
 
         return UserDetailsImpl.build(user);
+    }
+    public Optional<User> finByUserName(String userName){
+        return userRepository.findByUsername(userName);
     }
     public Optional<User> getLoggedInUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

@@ -25,12 +25,14 @@ public class User {
   @NotBlank
   @Size(max = 12)
   private String phone;
+  private boolean isOnline;
 
   @NotBlank
   @Size(max = 120)
   private String password;
 
   private int point;
+  private boolean isBanned;
   @Lob
   private String image;
   @ManyToMany(fetch = FetchType.LAZY)
@@ -42,27 +44,31 @@ public class User {
   public User() {
   }
 
-  public User(String username, String phone,int point, String password,String image) {
+  public User(String username, String phone,int point,boolean isBanned, String password,String image) {
     this.username = username;
     this.phone = phone;
     this.password = password;
     this.image = image;
     this.point = point;
+    this.isBanned = isBanned;
   }
 
-  public User(String username, String phone, String password, int point, Set<Role> roles ) {
+  public User(String username, String phone, String password, int point,boolean isBanned, Set<Role> roles ) {
     this.username = username;
     this.phone = phone;
     this.password = password;
     this.point = point;
+    this.isBanned = isBanned;
     this.roles = roles;
   }
 
-  public User(String username, String phone, String password, int point, String image, Set<Role> roles) {
+  public User(String username, String phone,boolean isOnline, String password, int point,boolean isBanned, String image, Set<Role> roles) {
     this.username = username;
     this.phone = phone;
+    this.isOnline = isOnline;
     this.password = password;
     this.point = point;
+    this.isBanned = isBanned;
     this.image = image;
     this.roles = roles;
   }
@@ -99,8 +105,24 @@ public class User {
     }
   }
 
+  public boolean isBanned() {
+    return isBanned;
+  }
+
+  public void setBanned(boolean banned) {
+    isBanned = banned;
+  }
+
   public void setPhone(String phone) {
     this.phone = phone;
+  }
+
+  public boolean isOnline() {
+    return isOnline;
+  }
+
+  public void setOnline(boolean online) {
+    isOnline = online;
   }
 
   public String getPassword() {
@@ -118,6 +140,7 @@ public class User {
   public void setRoles(Set<Role> roles) {
     this.roles = roles;
   }
+
 
   public String getImage() {
     return image;

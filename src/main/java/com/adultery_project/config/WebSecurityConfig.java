@@ -56,6 +56,7 @@ public class WebSecurityConfig {
                                 .requestMatchers("/ws/websocket").permitAll()
                                 .requestMatchers("/ws/**").permitAll()
                                 .requestMatchers("/User/register").permitAll()
+                                .requestMatchers("/User/logout").permitAll()
                                 .requestMatchers("/Chat/**").permitAll()
                                 .anyRequest().authenticated()
                 );

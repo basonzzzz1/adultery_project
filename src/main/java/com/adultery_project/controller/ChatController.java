@@ -4,6 +4,7 @@ import com.adultery_project.models.ChatRoom;
 import com.adultery_project.models.Message;
 import com.adultery_project.models.User;
 import com.adultery_project.payload.request.ChatRoomRequest;
+import com.adultery_project.payload.request.InputRequest;
 import com.adultery_project.payload.request.MessageRequest;
 import com.adultery_project.payload.request.RequestChatRoomLogin;
 import com.adultery_project.repository.MessageRequestRepository;
@@ -35,6 +36,28 @@ public class ChatController {
     UserDetailsServiceImpl userDetailsService;
     @Autowired
     MessageRequestRepository messageRequestRepository;
+    @PostMapping("/addPoint")
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ResponseEntity<?> addPoint(@RequestBody InputRequest inputRequest){
+        User principal = userDetailsService.findByUsername(inputRequest.getUsername()).get();
+        int pointPrincipal = principal.getPoint();
+        principal.setPoint(pointPrincipal + inputRequest.getPoint());
+        userDetailsService.save(principal);
+        return ResponseEntity.ok("Thêm điểm thành công !");
+    }
+    @PostMapping("/deletePoint")
+    @PreAuthorize(" hasAnyRole('ADMIN')")
+    public ResponseEntity<?> deletePoint(@RequestBody InputRequest inputRequest){
+        User principal = userDetailsService.findByUsername(inputRequest.getUsername()).get();
+        int pointPrincipal = principal.getPoint();
+        if(pointPrincipal < 0 || inputRequest.getPoint() > pointPrincipal){
+           throw new RuntimeException("Số điểm hiện tại không đủ !");
+        }else {
+            principal.setPoint(pointPrincipal - inputRequest.getPoint());
+            userDetailsService.save(principal);
+            return ResponseEntity.ok("thành công !");
+        }
+    }
 
     @PostMapping("/notification/create/chatroom")
     @PreAuthorize("hasAnyRole('USER') or hasAnyRole('ADMIN')")
@@ -43,12 +66,11 @@ public class ChatController {
         messageRequestRepository.save(messageRequest);
         return messageRequest;
     }
-
     @PostMapping("/create/chatRoom")
     @PreAuthorize("hasAnyRole('ADMIN')")
     public String createChatRoom(@RequestBody ChatRoomRequest chatRoomRequest) {
         if (userDetailsService.existsByUsername(chatRoomRequest.getUsername())) {
-            User user = userDetailsService.finByUserName(chatRoomRequest.getUsername()).get();
+            User user = userDetailsService.findByUsername(chatRoomRequest.getUsername()).get();
             if (chatRoomRequest.getPoint() < user.getPoint()) {
                 return "Số điểm hiện tại của người dùng" + chatRoomRequest.getUsername() + "không đủ để tạo phòng chat !";
             } else {
@@ -116,7 +138,7 @@ public class ChatController {
     public Message createMessage(@RequestBody Message message){
         template.convertAndSend("/chat/user/queue/position-update",message);
         ChatRoom chatRoom = chatRoomService.findById(message.getChatRoom().getId());
-        User user = userDetailsService.finByUserName(message.getUser().getUsername()).get();
+        User user = userDetailsService.findByUsername(message.getUser().getUsername()).get();
         Message newMessage = new Message(message.getContent() ,LocalDateTime.now() ,false , user ,chatRoom);
         messageService.save(newMessage);
         return message;

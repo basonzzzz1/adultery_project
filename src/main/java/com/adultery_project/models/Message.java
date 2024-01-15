@@ -10,7 +10,6 @@ public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-
     @Lob
     private String content;
     private LocalDateTime createAt;

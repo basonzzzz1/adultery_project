@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -20,6 +21,15 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public boolean existsByUsername(String username){
         return userRepository.existsByUsername(username);
     }
+    public User save(User user){
+        return userRepository.save(user);
+    }
+    public Boolean existsByPhone(String phone){
+        return userRepository.existsByPhone(phone);
+    }
+    public User findByUsernameAndPassword(String username , String password){
+        return userRepository.findByUsernameAndPassword(username , password).get();
+    }
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -28,7 +38,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         return UserDetailsImpl.build(user);
     }
-    public Optional<User> finByUserName(String userName){
+    public Optional<User> findByUsername(String userName){
         return userRepository.findByUsername(userName);
     }
     public Optional<User> getLoggedInUser() {
@@ -41,5 +51,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         }
         // Trường hợp không có ai đăng nhập
         throw new RuntimeException("Error Exception Principal !");
+    }
+    public List<User> findAll(){
+        return userRepository.findAll();
     }
 }

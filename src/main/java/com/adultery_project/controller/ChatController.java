@@ -1,15 +1,10 @@
 package com.adultery_project.controller;
 
-import com.adultery_project.models.ChatRoom;
-import com.adultery_project.models.Message;
-import com.adultery_project.models.User;
-import com.adultery_project.payload.request.ChatRoomRequest;
-import com.adultery_project.payload.request.InputRequest;
-import com.adultery_project.payload.request.MessageRequest;
-import com.adultery_project.payload.request.RequestChatRoomLogin;
+import com.adultery_project.models.*;
+import com.adultery_project.payload.request.*;
 import com.adultery_project.repository.MessageRequestRepository;
-import com.adultery_project.service.service.ChatRoomService;
 import com.adultery_project.service.serviceImpl.ChatRoomServiceImpl;
+import com.adultery_project.service.serviceImpl.CskhServiceImpl;
 import com.adultery_project.service.serviceImpl.MessageServiceImpl;
 import com.adultery_project.service.serviceImpl.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @CrossOrigin(origins = "*")
@@ -36,6 +32,8 @@ public class ChatController {
     UserDetailsServiceImpl userDetailsService;
     @Autowired
     MessageRequestRepository messageRequestRepository;
+    @Autowired
+    CskhServiceImpl cskhService;
     @PostMapping("/addPoint")
     @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<?> addPoint(@RequestBody InputRequest inputRequest){
@@ -139,14 +137,67 @@ public class ChatController {
         template.convertAndSend("/chat/user/queue/position-update",message);
         ChatRoom chatRoom = chatRoomService.findById(message.getChatRoom().getId());
         User user = userDetailsService.findByUsername(message.getUser().getUsername()).get();
-        Message newMessage = new Message(message.getContent() ,LocalDateTime.now() ,false , user ,chatRoom);
+        Message newMessage = new Message(message.getContent(),message.getImage() ,LocalDateTime.now() ,false , user ,chatRoom);
         messageService.save(newMessage);
         return message;
-    }
+    }   
     @GetMapping("/chatRoom/all")
     @PreAuthorize(" hasAnyRole('ADMIN')")
     public List<ChatRoom> getAllChatRoom() {
         return chatRoomService.getAll();
     }
+    @GetMapping("/getAllCskhInUser")
+    @PreAuthorize(" hasAnyRole('ADMIN')")
+    public List<Cskh> getAllCskhUserAdmin(){
+        User principal = userDetailsService.getLoggedInUser().get();
+        return cskhService.initialStateAllChatFriends(principal.getId());
+    }
+    @PostMapping("/createCskh")
+    @PreAuthorize("hasAnyRole('USER') or hasAnyRole('ADMIN')")
+    public ResponseEntity<String> createCskh(@RequestBody CskhRepuest cskhRepuest) {
+        User principal = userDetailsService.getLoggedInUser().get();
+        List<User> userList = userDetailsService.findAll();
 
+        for (int i = 0; i < userList.size(); i++) {
+            Set<Role> roleSet = userList.get(i).getRoles();
+            for (Role role : roleSet) {
+                if(role.getName() == ERole.ROLE_ADMIN){
+                    Cskh cskh = new Cskh(cskhRepuest.getContent(), LocalDateTime.now(), false, principal,userList.get(i));
+                    cskhService.save(cskh);
+                    template.convertAndSend("/chat/user/queue/cskh",cskh);
+                }
+            }
+        }
+        return ResponseEntity.ok("bạn đã gửi cskh thành công !");
+    }
+    @PostMapping("/createCskhAdmin")
+    @PreAuthorize(" hasAnyRole('ADMIN')")
+    public ResponseEntity<String> createCskhAdmin(@RequestBody CskhRequestAdmin cskhRequestAdmin) {
+        User principal = userDetailsService.getLoggedInUser().get();
+        User user = userDetailsService.findByUsername(cskhRequestAdmin.getUsername()).get();
+        for (Role role:principal.getRoles()) {
+            if(role.getName() == ERole.ROLE_ADMIN){
+                Cskh cskh = new Cskh(cskhRequestAdmin.getContent(), LocalDateTime.now(), false, principal,user);
+                cskhService.save(cskh);
+                template.convertAndSend("/chat/user/queue/cskh",cskh);
+                return ResponseEntity.ok("bạn đã gửi cskh thành công !");
+            }
+        }
+       throw new RuntimeException();
+    }
+    @PostMapping("/getAllCskhInUserDetail")
+    @PreAuthorize("hasAnyRole('USER') or hasAnyRole('ADMIN')")
+    public List<Cskh> getAllCskhInUserDetail(@RequestBody CskhRequestAdmin cskhRequestAdmin){
+        User principal = userDetailsService.getLoggedInUser().get();
+        User user = userDetailsService.findByUsername(cskhRequestAdmin.getUsername()).get();
+        List<Cskh> cskhList = cskhService.getAllCskhInUser(principal.getId(),user.getId());
+        return cskhList;
+    }
+    @GetMapping("/getAllCskhUser")
+    @PreAuthorize("hasAnyRole('USER')")
+    public List<Cskh> getAllCskhUser(){
+        User principal = userDetailsService.getLoggedInUser().get();
+        List<Cskh> cskhList = cskhService.findByFromUserOrToUser(principal,principal);
+        return cskhList;
+    }
 }

@@ -12,17 +12,21 @@ public class Message {
     private Integer id;
     @Lob
     private String content;
+    @Lob
+    private String image;
     private LocalDateTime createAt;
     private boolean seen;
     @ManyToOne
     private User user;
     @ManyToOne
     ChatRoom chatRoom;
+
     public Message() {
     }
 
-    public Message(String content, LocalDateTime createAt, boolean seen, User user, ChatRoom chatRoom) {
+    public Message(String content,String image, LocalDateTime createAt, boolean seen, User user, ChatRoom chatRoom) {
         this.content = content;
+        this.image = image;
         this.createAt = createAt;
         this.seen = seen;
         this.user = user;
@@ -52,6 +56,14 @@ public class Message {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
     }
 
     public LocalDateTime getCreateAt() {

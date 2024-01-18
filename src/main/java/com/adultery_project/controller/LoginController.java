@@ -39,6 +39,7 @@ public class LoginController {
     AuthenticationManager authenticationManager;
     @Autowired
     SimpMessagingTemplate template;
+
 //    @Autowired
 //    UserRepository userRepository;
 
@@ -63,7 +64,11 @@ public class LoginController {
                 .map(item -> item.getAuthority())
                 .collect(Collectors.toList());
         User user = userDetailsService.findByUsername(userDetails.getUsername()).get();
-        user.setOnline(true);
+        if(user.isBanned() == true){
+            user.setOnline(false);
+        }else {
+            user.setOnline(true);
+        }
         userDetailsService.save(user);
         return ResponseEntity.ok(new JwtResponse(jwt,
                 userDetails.getId(),
@@ -95,7 +100,6 @@ public class LoginController {
                 encoder.encode(signUpRequest.getPassword()),"https://inkythuatso.com/uploads/thumbnails/800/2023/03/8-anh-dai-dien-trang-inkythuatso-03-15-26-54.jpg");
         Set<String> strRoles = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();
-
         if (strRoles == null) {
             Role userRole = roleRepository.findByName(ERole.ROLE_USER)
                     .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
@@ -107,7 +111,6 @@ public class LoginController {
                         Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(adminRole);
-
                         break;
                     default:
                         Role userRole = roleRepository.findByName(ERole.ROLE_USER)
@@ -159,6 +162,15 @@ public class LoginController {
         userDetailsService.save(user);
         template.convertAndSend("/user/queue/extraPoints",pointRequest);
         return ResponseEntity.ok("cộng thành công : " + pointRequest.getPoint() + "điểm cho người dùng số điểm hiện tại là : " + (pointRequest.getPoint() + principalPoint));
+    }
+    @PostMapping("/extraPointsInUser")
+    @PreAuthorize("hasAnyRole('USER') or hasAnyRole('ADMIN')")
+    public ResponseEntity<?> extraPointsInUser(@RequestBody PointRequest pointRequest){
+        User principal = userDetailsService.getLoggedInUser().get();
+        int pointPrincipal = principal.getPoint();
+        principal.setPoint(pointPrincipal + pointRequest.getPoint());
+        userDetailsService.save(principal);
+        return ResponseEntity.ok(principal);
     }
     @PostMapping("/minusPoints")
     @PreAuthorize("hasAnyRole('ADMIN')")

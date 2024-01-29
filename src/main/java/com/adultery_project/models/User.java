@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -32,6 +33,10 @@ public class User {
   private String password;
 
   private int point;
+  private int spin;
+  private int countSpin;
+
+  private LocalDateTime lastSpinReset;
   private boolean isBanned;
   @Lob
   private String image;
@@ -44,30 +49,39 @@ public class User {
   public User() {
   }
 
-  public User(String username, String phone,int point,boolean isBanned, String password,String image) {
+  public User(String username, String phone,int point,int spin,int countSpin,LocalDateTime lastSpinReset,boolean isBanned, String password,String image) {
     this.username = username;
     this.phone = phone;
     this.password = password;
     this.image = image;
     this.point = point;
+    this.spin = spin;
+    this.lastSpinReset = lastSpinReset;
+    this.countSpin = countSpin;
     this.isBanned = isBanned;
   }
 
-  public User(String username, String phone, String password, int point,boolean isBanned, Set<Role> roles ) {
+  public User(String username, String phone, String password, int point,int spin,int countSpin,LocalDateTime lastSpinReset,boolean isBanned, Set<Role> roles ) {
     this.username = username;
     this.phone = phone;
     this.password = password;
     this.point = point;
+    this.spin = spin;
+    this.countSpin = countSpin;
+    this.lastSpinReset = lastSpinReset;
     this.isBanned = isBanned;
     this.roles = roles;
   }
 
-  public User(String username, String phone,boolean isOnline, String password, int point,boolean isBanned, String image, Set<Role> roles) {
+  public User(String username, String phone,boolean isOnline, String password, int point,int spin,int countSpin,LocalDateTime lastSpinReset,boolean isBanned, String image, Set<Role> roles) {
     this.username = username;
     this.phone = phone;
     this.isOnline = isOnline;
     this.password = password;
     this.point = point;
+    this.spin = spin;
+    this.countSpin = countSpin;
+    this.lastSpinReset = lastSpinReset;
     this.isBanned = isBanned;
     this.image = image;
     this.roles = roles;
@@ -103,6 +117,30 @@ public class User {
     } else {
       this.point = point;
     }
+  }
+
+  public int getSpin() {
+    return spin;
+  }
+
+  public void setSpin(int spin) {
+    this.spin = spin;
+  }
+
+  public int getCountSpin() {
+    return countSpin;
+  }
+
+  public void setCountSpin(int countSpin) {
+    this.countSpin = countSpin;
+  }
+
+  public LocalDateTime getLastSpinReset() {
+    return lastSpinReset;
+  }
+
+  public void setLastSpinReset(LocalDateTime lastSpinReset) {
+    this.lastSpinReset = lastSpinReset;
   }
 
   public boolean isBanned() {

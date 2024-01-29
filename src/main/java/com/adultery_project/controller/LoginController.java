@@ -14,10 +14,13 @@ import com.adultery_project.repository.RoleRepository;
 import com.adultery_project.repository.UserRepository;
 import com.adultery_project.service.serviceImpl.UserDetailsImpl;
 import com.adultery_project.service.serviceImpl.UserDetailsServiceImpl;
+import jakarta.annotation.PostConstruct;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,6 +29,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -53,6 +57,7 @@ public class LoginController {
     PasswordEncoder encoder;
     @Autowired
     JwtUtils jwtUtils;
+
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
@@ -64,9 +69,9 @@ public class LoginController {
                 .map(item -> item.getAuthority())
                 .collect(Collectors.toList());
         User user = userDetailsService.findByUsername(userDetails.getUsername()).get();
-        if(user.isBanned() == true){
+        if (user.isBanned() == true) {
             user.setOnline(false);
-        }else {
+        } else {
             user.setOnline(true);
         }
         userDetailsService.save(user);
@@ -93,11 +98,15 @@ public class LoginController {
                     .badRequest()
                     .body(new MessageResponse("Error: Phone is already in use!"));
         }
+        LocalDateTime lastTimeReset = LocalDateTime.now().minusDays(1);
         User user = new User(signUpRequest.getUsername(),
                 signUpRequest.getPhone(),
                 0,
+                5,
+                5,
+                lastTimeReset,
                 false,
-                encoder.encode(signUpRequest.getPassword()),"https://inkythuatso.com/uploads/thumbnails/800/2023/03/8-anh-dai-dien-trang-inkythuatso-03-15-26-54.jpg");
+                encoder.encode(signUpRequest.getPassword()), "https://inkythuatso.com/uploads/thumbnails/800/2023/03/8-anh-dai-dien-trang-inkythuatso-03-15-26-54.jpg");
         Set<String> strRoles = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();
         if (strRoles == null) {
@@ -140,68 +149,111 @@ public class LoginController {
         }
         return err;
     }
+
     @PostMapping("/logout")
     @PreAuthorize("hasAnyRole('USER') or hasAnyRole('ADMIN')")
-    public ResponseEntity<?> logOut(@RequestBody String username){
+    public ResponseEntity<?> logOut(@RequestBody String username) {
         User principal = userDetailsService.getLoggedInUser().get();
         principal.setOnline(false);
         userDetailsService.save(principal);
         return ResponseEntity.ok("đăng xuất thành công !");
     }
+
     @GetMapping("/findAllUser")
     @PreAuthorize("hasAnyRole('ADMIN')")
-    public List<User> findAllUser(){
+    public List<User> findAllUser() {
         return userDetailsService.findAll();
     }
+
     @PostMapping("/extraPoints")
     @PreAuthorize("hasAnyRole('ADMIN')")
-    public ResponseEntity<String> extraPoints(@RequestBody PointRequest pointRequest){
+    public ResponseEntity<String> extraPoints(@RequestBody PointRequest pointRequest) {
         User user = userDetailsService.findByUsername(pointRequest.getUsername()).get();
         int principalPoint = user.getPoint();
         user.setPoint(principalPoint + pointRequest.getPoint());
         userDetailsService.save(user);
-        template.convertAndSend("/user/queue/extraPoints",pointRequest);
+        template.convertAndSend("/user/queue/extraPoints", pointRequest);
         return ResponseEntity.ok("cộng thành công : " + pointRequest.getPoint() + "điểm cho người dùng số điểm hiện tại là : " + (pointRequest.getPoint() + principalPoint));
     }
+
     @PostMapping("/extraPointsInUser")
     @PreAuthorize("hasAnyRole('USER') or hasAnyRole('ADMIN')")
-    public ResponseEntity<?> extraPointsInUser(@RequestBody PointRequest pointRequest){
+    public ResponseEntity<?> extraPointsInUser(@RequestBody PointRequest pointRequest) {
         User principal = userDetailsService.getLoggedInUser().get();
         int pointPrincipal = principal.getPoint();
         principal.setPoint(pointPrincipal + pointRequest.getPoint());
         userDetailsService.save(principal);
         return ResponseEntity.ok(principal);
     }
+
     @PostMapping("/minusPoints")
     @PreAuthorize("hasAnyRole('ADMIN')")
-    public ResponseEntity<String> minusPoints(@RequestBody PointRequest pointRequest){
+    public ResponseEntity<String> minusPoints(@RequestBody PointRequest pointRequest) {
         User user = userDetailsService.findByUsername(pointRequest.getUsername()).get();
         int principalPoint = (user.getPoint() - pointRequest.getPoint());
         user.setPoint(principalPoint);
         userDetailsService.save(user);
-        template.convertAndSend("/user/queue/minusPoints",pointRequest);
+        template.convertAndSend("/user/queue/minusPoints", pointRequest);
         return ResponseEntity.ok("cộng thành công : " + pointRequest.getPoint() + "điểm cho người dùng số điểm hiện tại là : " + principalPoint);
     }
+
     @PostMapping("/banner")
     @PreAuthorize("hasAnyRole('ADMIN')")
-    public ResponseEntity<String> bannerUser(@RequestBody BannerRequest bannerRequest){
-         User user = userDetailsService.findByUsername(bannerRequest.getUsername()).get();
-         user.setBanned(true);
-         userDetailsService.save(user);
-         return ResponseEntity.ok("khóa taì khoản :" + bannerRequest.getUsername()+" thành công !");
+    public ResponseEntity<String> bannerUser(@RequestBody BannerRequest bannerRequest) {
+        User user = userDetailsService.findByUsername(bannerRequest.getUsername()).get();
+        user.setBanned(true);
+        userDetailsService.save(user);
+        return ResponseEntity.ok("khóa taì khoản :" + bannerRequest.getUsername() + " thành công !");
     }
+
     @PostMapping("/unBanner")
     @PreAuthorize("hasAnyRole('ADMIN')")
-    public ResponseEntity<String> unBannedUser(@RequestBody BannerRequest bannerRequest){
-         User user = userDetailsService.findByUsername(bannerRequest.getUsername()).get();
-         user.setBanned(false);
-         userDetailsService.save(user);
-         return ResponseEntity.ok("mở taì khoản :" + bannerRequest.getUsername()+" thành công !");
-
+    public ResponseEntity<String> unBannedUser(@RequestBody BannerRequest bannerRequest) {
+        User user = userDetailsService.findByUsername(bannerRequest.getUsername()).get();
+        user.setBanned(false);
+        userDetailsService.save(user);
+        return ResponseEntity.ok("mở taì khoản :" + bannerRequest.getUsername() + " thành công !");
     }
+
     @GetMapping("/loggedInUser")
     @PreAuthorize("hasAnyRole('USER') or hasAnyRole('ADMIN')")
-    public User loggedInUser(){
+    public User loggedInUser() {
         return userDetailsService.getLoggedInUser().get();
+    }
+
+    @GetMapping("/countSpin")
+    @PreAuthorize("hasAnyRole('USER') or hasAnyRole('ADMIN')")
+    public ResponseEntity<User> countSpin() {
+        User principal = userDetailsService.getLoggedInUser().get();
+        if (principal.getCountSpin() != 0) {
+            int countSpin = principal.getCountSpin()-1;
+            principal.setCountSpin(countSpin);
+            return ResponseEntity.ok(userDetailsService.save(principal));
+        }
+       return ResponseEntity.notFound().build();
+    }
+    @PostMapping("/editSpin")
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public User editSpin(@RequestBody PointRequest spinRequest){
+        User user = userDetailsService.findByUsername(spinRequest.getUsername()).get();
+        user.setSpin(spinRequest.getPoint());
+        user.setCountSpin(spinRequest.getPoint());
+        return userDetailsService.save(user);
+    }
+    @PostConstruct
+    public void init() {
+        resetCountSpin();
+    }
+
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void resetCountSpin() {
+        List<User> users = userDetailsService.findAll();
+        for (User user : users) {
+            if (user.getLastSpinReset() == null || user.getLastSpinReset().isBefore(LocalDateTime.now().minusDays(1))) {
+                user.setCountSpin(user.getSpin());
+                user.setLastSpinReset(LocalDateTime.now());
+                userDetailsService.save(user);
+            }
+        }
     }
 }

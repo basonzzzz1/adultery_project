@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class MessageServiceImpl implements MessageService {
@@ -51,4 +52,11 @@ public class MessageServiceImpl implements MessageService {
     public List<Message> findByChatRoom(ChatRoom chatRoom) {
         return messageRepository.findByChatRoom(chatRoom);
     }
+
+    @Override
+    public void deleteAllByChatRoom_Id(UUID chatRoomId) {
+        messageRepository.deleteAllByChatRoom_Id(chatRoomId);
+    }
+
+
 }
